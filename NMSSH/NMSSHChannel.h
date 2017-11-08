@@ -11,7 +11,9 @@ typedef NS_ENUM(NSInteger, NMSSHChannelError) {
     NMSSHChannelAllocationError,
     NMSSHChannelRequestShellError,
     NMSSHChannelWriteError,
-    NMSSHChannelReadError
+    NMSSHChannelReadError,
+    NMSSHChannelUploadError,
+    NMSSHChannelDownloadError
 };
 
 typedef NS_ENUM(NSInteger, NMSSHChannelPtyTerminal) {
@@ -201,9 +203,12 @@ typedef NS_ENUM(NSInteger, NMSSHChannelType)  {
 
  @param localPath Path to a file on the local computer
  @param remotePath Path to save the file to
+ @param error Pointer where the optional error will be assigned
  @returns SCP upload success
  */
-- (BOOL)uploadFile:(NSString *)localPath to:(NSString *)remotePath;
+- (BOOL)uploadFile:(NSString *)localPath
+                to:(NSString *)remotePath
+             error:(NSError **)error;
 
 /**
  Download a remote file to local the filesystem.
@@ -215,7 +220,9 @@ typedef NS_ENUM(NSInteger, NMSSHChannelType)  {
  @param localPath Path to save the file to
  @returns SCP download success
  */
-- (BOOL)downloadFile:(NSString *)remotePath to:(NSString *)localPath;
+- (BOOL)downloadFile:(NSString *)remotePath
+                  to:(NSString *)localPath
+               error:(NSError **)error;
 
 /**
  Download a remote file to local the filesystem.
@@ -231,7 +238,8 @@ typedef NS_ENUM(NSInteger, NMSSHChannelType)  {
  */
 - (BOOL)downloadFile:(NSString *)remotePath
                   to:(NSString *)localPath
-            progress:(BOOL (^)(NSUInteger, NSUInteger))progress;
+            progress:(BOOL (^)(NSUInteger, NSUInteger))progress
+               error:(NSError **)error;
 
 /**
  Upload a local file to a remote server.
@@ -242,11 +250,13 @@ typedef NS_ENUM(NSInteger, NMSSHChannelType)  {
  @param localPath Path to a file on the local computer
  @param remotePath Path to save the file to
  @param progress Method called periodically with number of bytes uploaded. Returns NO to abort.
+  @param error Pointer where the optional error will be assigned.
  @returns SCP upload success
  */
 - (BOOL)uploadFile:(NSString *)localPath
                 to:(NSString *)remotePath
-          progress:(BOOL (^)(NSUInteger))progress;
+          progress:(BOOL (^)(NSUInteger))progress
+             error:(NSError **)error;
 
 
 @end

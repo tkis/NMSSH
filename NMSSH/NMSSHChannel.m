@@ -500,11 +500,15 @@
 #pragma mark - SCP FILE TRANSFER
 // -----------------------------------------------------------------------------
 
-- (BOOL)uploadFile:(NSString *)localPath to:(NSString *)remotePath {
-    return [self uploadFile:localPath to:remotePath progress:NULL];
+- (BOOL)uploadFile:(NSString *)localPath to:(NSString *)remotePath error:(NSError *__autoreleasing *)error{
+    return [self uploadFile:localPath to:remotePath progress:NULL error:error];
 }
 
-- (BOOL)uploadFile:(NSString *)localPath to:(NSString *)remotePath progress:(BOOL (^)(NSUInteger))progress {
+- (BOOL)uploadFile:(NSString *)localPath
+                to:(NSString *)remotePath
+          progress:(BOOL (^)(NSUInteger))progress
+             error:(NSError *__autoreleasing *)error {
+    
     if (self.channel != NULL) {
         NMSSHLogWarn(@"The channel will be closed before continue");
 
@@ -528,6 +532,10 @@
     FILE *local = fopen([localPath UTF8String], "rb");
     if (!local) {
         NMSSHLogError(@"Can't read local file");
+        
+        *error = [NSError errorWithDomain:@"NMSSH"
+                                     code:NMSSHChannelWriteError
+                                 userInfo:@{NSLocalizedDescriptionKey: @"Can't read local file"}];
         return NO;
     }
 
@@ -543,6 +551,10 @@
     if (channel == NULL) {
         NMSSHLogError(@"Unable to open SCP session");
         fclose(local);
+        
+        *error = [NSError errorWithDomain:@"NMSSH"
+                                     code:NMSSHChannelUploadError
+                                 userInfo:@{NSLocalizedDescriptionKey: @"Unable to open SCP session"}];
 
         return NO;
     }
@@ -567,6 +579,10 @@
             if (rc < 0) {
                 NMSSHLogError(@"Failed writing file");
                 [self closeChannel];
+                
+                *error = [NSError errorWithDomain:@"NMSSH"
+                                             code:NMSSHChannelUploadError
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Failed writing file"}];
                 return NO;
             }
             else {
@@ -592,11 +608,15 @@
     return !abort;
 }
 
-- (BOOL)downloadFile:(NSString *)remotePath to:(NSString *)localPath {
-    return [self downloadFile:remotePath to:localPath progress:NULL];
+- (BOOL)downloadFile:(NSString *)remotePath to:(NSString *)localPath error:(NSError *__autoreleasing *)error{
+    return [self downloadFile:remotePath to:localPath progress:NULL error:error];
 }
 
-- (BOOL)downloadFile:(NSString *)remotePath to:(NSString *)localPath progress:(BOOL (^)(NSUInteger, NSUInteger))progress {
+- (BOOL)downloadFile:(NSString *)remotePath
+                  to:(NSString *)localPath
+            progress:(BOOL (^)(NSUInteger, NSUInteger))progress
+               error:(NSError *__autoreleasing *)error {
+    
     if (self.channel != NULL) {
         NMSSHLogWarn(@"The channel will be closed before continue");
 
@@ -624,6 +644,10 @@
 
     if (channel == NULL) {
         NMSSHLogError(@"Unable to open SCP session");
+        
+        *error = [NSError errorWithDomain:@"NMSSH"
+                                     code:NMSSHChannelDownloadError
+                                 userInfo:@{NSLocalizedDescriptionKey: @"Unable to open SCP session"}];
         return NO;
     }
 
@@ -656,12 +680,20 @@
                 NMSSHLogError(@"Failed to write to local file");
                 close(localFile);
                 [self closeChannel];
+                
+                *error = [NSError errorWithDomain:@"NMSSH"
+                                             code:NMSSHChannelDownloadError
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Failed to write to local file"}];
                 return NO;
             }
             got += rc;
             if (progress && !progress((NSUInteger)got, (NSUInteger)fileinfo.st_size)) {
                 close(localFile);
                 [self closeChannel];
+                
+                *error = [NSError errorWithDomain:@"NMSSH"
+                                             code:NMSSHChannelDownloadError
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Failed to write to local file"}];
                 return NO;
             }
         }
@@ -670,6 +702,9 @@
             close(localFile);
             [self closeChannel];
 
+            *error = [NSError errorWithDomain:@"NMSSH"
+                                         code:NMSSHChannelDownloadError
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Failed to read SCP data"}];
             return NO;
         }
 
